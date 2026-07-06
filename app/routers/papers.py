@@ -2,8 +2,10 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.services.arxiv_client import search_arxiv
-from app.services.vector_store import upsert_papers, query_papers
+from app.services.vector_store import upsert_papers, query_papers, get_papers_by_ids
 from app.services.answer_generator import generate_answer
+from app.services.summarizer import summarize_papers
+from app.services.comparator import compare_papers
 
 router = APIRouter()
 
@@ -16,6 +18,14 @@ class SearchRequest(BaseModel):
 class AskRequest(BaseModel):
     question: str
     top_k: int = 5
+
+
+class SummarizeRequest(BaseModel):
+    paper_ids: list[str]
+
+
+class CompareRequest(BaseModel):
+    paper_ids: list[str]
 
 
 @router.post("/search")
@@ -48,4 +58,36 @@ def ask(req: AskRequest):
         "question": req.question,
         "answer": answer,
         "sources": hits,
+    }
+
+
+@router.post("/summarize")
+def summarize(req: SummarizeRequest):
+    """
+    Week 2: turn already-indexed papers into structured summary cards
+    (problem, method, dataset, metrics, findings, limitations).
+    """
+    papers = get_papers_by_ids(req.paper_ids)
+    cards = summarize_papers(papers)
+
+    return {
+        "requested_ids": req.paper_ids,
+        "cards": cards,
+    }
+
+
+@router.post("/compare")
+def compare(req: CompareRequest):
+    """
+    Week 2: compare multiple already-indexed papers by method, dataset,
+    metrics, and limitations — table plus a short narrative analysis.
+    """
+    papers = get_papers_by_ids(req.paper_ids)
+    cards = summarize_papers(papers)
+    comparison = compare_papers(cards)
+
+    return {
+        "requested_ids": req.paper_ids,
+        "cards": cards,
+        "comparison": comparison,
     }

@@ -42,6 +42,29 @@ def upsert_papers(papers: list[dict]):
     _collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
 
 
+def get_papers_by_ids(paper_ids: list[str]) -> list[dict]:
+    """
+    Fetch specific papers that were already indexed via /api/search, by
+    their arXiv IDs — so summarize/compare don't require re-pasting
+    abstracts the user already retrieved.
+    """
+    if not paper_ids:
+        return []
+
+    results = _collection.get(ids=paper_ids)
+
+    papers = []
+    for i in range(len(results["ids"])):
+        papers.append(
+            {
+                "id": results["ids"][i],
+                "abstract": results["documents"][i],
+                **results["metadatas"][i],
+            }
+        )
+    return papers
+
+
 def query_papers(question: str, top_k: int = 5) -> list[dict]:
     """Return the top_k most relevant stored papers for a natural-language question."""
     results = _collection.query(query_texts=[question], n_results=top_k)
