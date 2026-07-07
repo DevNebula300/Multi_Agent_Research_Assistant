@@ -6,6 +6,8 @@ from app.services.vector_store import upsert_papers, query_papers, get_papers_by
 from app.services.answer_generator import generate_answer
 from app.services.summarizer import summarize_papers
 from app.services.comparator import compare_papers
+from app.services.claim_checker import check_claims
+from app.services.gap_detector import detect_research_gaps
 
 router = APIRouter()
 
@@ -25,6 +27,15 @@ class SummarizeRequest(BaseModel):
 
 
 class CompareRequest(BaseModel):
+    paper_ids: list[str]
+
+
+class CheckClaimsRequest(BaseModel):
+    answer_text: str
+    paper_ids: list[str]
+
+
+class GapsRequest(BaseModel):
     paper_ids: list[str]
 
 
@@ -90,4 +101,38 @@ def compare(req: CompareRequest):
         "requested_ids": req.paper_ids,
         "cards": cards,
         "comparison": comparison,
+    }
+
+
+@router.post("/check-claims")
+def check_claims_endpoint(req: CheckClaimsRequest):
+    """
+    Week 3: independently verify each claim in a generated answer against
+    the actual abstracts of the papers it cited. Returns a per-claim
+    verdict plus an overall grounding score — the "evidence quality
+    dashboard" piece from the proposal.
+    """
+    papers = get_papers_by_ids(req.paper_ids)
+    report = check_claims(req.answer_text, papers)
+
+    return {
+        "answer_text": req.answer_text,
+        **report,
+    }
+
+
+@router.post("/gaps")
+def gaps(req: GapsRequest):
+    """
+    Week 3: summarize each paper, then look across their limitations to
+    find recurring, unresolved themes in the field.
+    """
+    papers = get_papers_by_ids(req.paper_ids)
+    cards = summarize_papers(papers)
+    gap_report = detect_research_gaps(cards)
+
+    return {
+        "requested_ids": req.paper_ids,
+        "cards": cards,
+        **gap_report,
     }
