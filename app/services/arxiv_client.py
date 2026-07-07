@@ -65,7 +65,7 @@ def search_arxiv(query: str, max_results: int = 10) -> List[Paper]:
         "sortOrder": "descending",
     }
 
-    response = requests.get(ARXIV_API_URL, params=params, timeout=15)
+    response = requests.get(ARXIV_API_URL, params=params, timeout=30)
     response.raise_for_status()
 
     root = ET.fromstring(response.text)
