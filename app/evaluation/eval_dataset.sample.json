@@ -1,0 +1,17 @@
+{
+  "description": "Sample QA pairs for evaluating answer grounding and claim verification. Replace/extend with real PubMedQA rows (question, long_answer, final_decision) or your own custom pairs once you're ready to scale this up.",
+  "items": [
+    {
+      "id": "sample_1",
+      "question": "Do retrieval-augmented generation systems reduce hallucination compared to standalone LLMs?",
+      "expected_decision": "yes",
+      "topic_for_retrieval": "retrieval augmented generation hallucination reduction"
+    },
+    {
+      "id": "sample_2",
+      "question": "Is there a single standardized benchmark that all RAG evaluation frameworks agree on?",
+      "expected_decision": "no",
+      "topic_for_retrieval": "RAG evaluation methods benchmarks"
+    }
+  ]
+}
