@@ -1,4 +1,6 @@
+import os
 from fastapi import APIRouter
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from app.services.arxiv_client import search_arxiv
@@ -8,6 +10,8 @@ from app.services.summarizer import summarize_papers
 from app.services.comparator import compare_papers
 from app.services.claim_checker import check_claims
 from app.services.gap_detector import detect_research_gaps
+from app.services.lit_review import generate_lit_review
+from app.services.exporter import export_lit_review_to_docx, EXPORT_DIR
 
 router = APIRouter()
 
@@ -37,6 +41,12 @@ class CheckClaimsRequest(BaseModel):
 
 class GapsRequest(BaseModel):
     paper_ids: list[str]
+
+
+class LitReviewRequest(BaseModel):
+    topic: str
+    paper_ids: list[str]
+    export_docx: bool = False
 
 
 @router.post("/search")
@@ -136,3 +146,46 @@ def gaps(req: GapsRequest):
         "cards": cards,
         **gap_report,
     }
+
+
+@router.post("/lit-review")
+def lit_review(req: LitReviewRequest):
+    """
+    Week 4: the final synthesis step. Summarizes papers, compares them,
+    detects research gaps, then drafts a full literature review section
+    grounded in that already-verified structured output.
+
+    Set export_docx=true to also save a downloadable .docx file — the
+    filename returned can be fetched via GET /api/lit-review/download/{filename}.
+    """
+    papers = get_papers_by_ids(req.paper_ids)
+    cards = summarize_papers(papers)
+    comparison = compare_papers(cards)
+    gaps = detect_research_gaps(cards)
+
+    review_text = generate_lit_review(req.topic, cards, comparison, gaps)
+
+    result = {
+        "topic": req.topic,
+        "cards": cards,
+        "comparison": comparison,
+        "gaps": gaps,
+        "lit_review_markdown": review_text,
+    }
+
+    if req.export_docx:
+        filepath = export_lit_review_to_docx(req.topic, review_text)
+        result["docx_filename"] = os.path.basename(filepath)
+
+    return result
+
+
+@router.get("/lit-review/download/{filename}")
+def download_lit_review(filename: str):
+    """Download a previously generated lit review .docx file by filename."""
+    filepath = os.path.join(EXPORT_DIR, filename)
+    return FileResponse(
+        filepath,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        filename=filename,
+    )
