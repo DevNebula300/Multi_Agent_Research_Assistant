@@ -8,14 +8,10 @@ doesn't trust that a citation next to a claim means the claim is actually
 supported. It re-checks each one.
 """
 
-import os
 import json
 import re
-from anthropic import Anthropic
 
-_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-
-MODEL = "claude-sonnet-4-6"
+from app.services.llm import complete
 
 SYSTEM_PROMPT = """You are a fact-checking agent for a research assistant.
 
@@ -69,16 +65,7 @@ def check_claims(answer_text: str, sources: list[dict]) -> dict:
         f"Cited paper abstracts:\n{abstracts_block}"
     )
 
-    response = _client.messages.create(
-        model=MODEL,
-        max_tokens=1200,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_message}],
-    )
-
-    raw_text = "".join(
-        block.text for block in response.content if block.type == "text"
-    ).strip()
+    raw_text = complete(SYSTEM_PROMPT, user_message, max_tokens=1200)
 
     if raw_text.startswith("```"):
         raw_text = raw_text.strip("`")

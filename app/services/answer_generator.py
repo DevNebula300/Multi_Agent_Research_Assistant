@@ -5,12 +5,7 @@ checker" idea: by forcing the model to cite paper IDs inline, unsupported
 claims become easy to spot later.
 """
 
-import os
-from anthropic import Anthropic
-
-_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-
-MODEL = "claude-sonnet-4-6"
+from app.services.llm import complete
 
 SYSTEM_PROMPT = """You are a research assistant. You will be given a user \
 question and a set of retrieved paper abstracts, each with an ID.
@@ -34,11 +29,4 @@ def generate_answer(question: str, retrieved_papers: list[dict]) -> str:
 
     user_message = f"Question: {question}\n\nRetrieved abstracts:\n\n{context}"
 
-    response = _client.messages.create(
-        model=MODEL,
-        max_tokens=1000,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_message}],
-    )
-
-    return "".join(block.text for block in response.content if block.type == "text")
+    return complete(SYSTEM_PROMPT, user_message, max_tokens=1000)

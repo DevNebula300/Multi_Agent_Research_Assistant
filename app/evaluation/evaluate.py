@@ -19,7 +19,6 @@ import time
 import os
 import sys
 import json
-from anthropic import Anthropic
 
 # Allow running this file directly (`python -m app.evaluation.evaluate`)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -28,9 +27,7 @@ from app.services.arxiv_client import search_arxiv
 from app.services.vector_store import upsert_papers, query_papers
 from app.services.answer_generator import generate_answer
 from app.services.claim_checker import check_claims
-
-_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-MODEL = "claude-sonnet-4-6"
+from app.services.llm import complete
 
 JUDGE_SYSTEM_PROMPT = """You classify a research assistant's answer into \
 exactly one word: yes, no, or maybe/unclear — based on what stance the \
@@ -39,19 +36,12 @@ answer takes on the question. Respond with ONLY that one word, nothing else.
 
 
 def _judge_decision(question: str, answer: str) -> str:
-    """Ask Claude to classify the generated answer's implied yes/no/maybe stance."""
-    response = _client.messages.create(
-        model=MODEL,
+    """Ask the model to classify the generated answer's implied yes/no/maybe stance."""
+    text = complete(
+        JUDGE_SYSTEM_PROMPT,
+        f"Question: {question}\n\nAnswer: {answer}",
         max_tokens=10,
-        system=JUDGE_SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": f"Question: {question}\n\nAnswer: {answer}",
-            }
-        ],
     )
-    text = "".join(b.text for b in response.content if b.type == "text")
     return text.strip().lower()
 
 

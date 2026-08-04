@@ -5,16 +5,11 @@ narrative highlighting how they differ.
 
 Table construction is pure Python — it reuses the structured fields the
 summarizer already extracted, so it's free and instant. Only the narrative
-step calls Claude, since spotting patterns/contrasts across papers is
+step calls the LLM, since spotting patterns/contrasts across papers is
 where a model actually adds value over a plain table.
 """
 
-import os
-from anthropic import Anthropic
-
-_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-
-MODEL = "claude-sonnet-4-6"
+from app.services.llm import complete
 
 SYSTEM_PROMPT = """You are a research assistant comparing multiple papers \
 that have already been summarized into structured cards (method, dataset, \
@@ -50,7 +45,7 @@ def build_comparison_table(paper_cards: list[dict]) -> str:
 
 
 def generate_comparison_narrative(paper_cards: list[dict]) -> str:
-    """Ask Claude for a short comparative analysis across the paper cards."""
+    """Ask the model for a short comparative analysis across the paper cards."""
     if len(paper_cards) < 2:
         return "Need at least 2 papers to generate a comparison."
 
@@ -63,16 +58,7 @@ def generate_comparison_narrative(paper_cards: list[dict]) -> str:
         for c in paper_cards
     )
 
-    response = _client.messages.create(
-        model=MODEL,
-        max_tokens=500,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": cards_text}],
-    )
-
-    return "".join(
-        block.text for block in response.content if block.type == "text"
-    )
+    return complete(SYSTEM_PROMPT, cards_text, max_tokens=500)
 
 
 def compare_papers(paper_cards: list[dict]) -> dict:

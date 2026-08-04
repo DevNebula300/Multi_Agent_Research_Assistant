@@ -8,13 +8,9 @@ the comparison agent (Week 2) and lit review agent (Week 4) can both build
 on top of.
 """
 
-import os
 import json
-from anthropic import Anthropic
 
-_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-
-MODEL = "claude-sonnet-4-6"
+from app.services.llm import complete
 
 SYSTEM_PROMPT = """You are a research assistant that converts a paper's \
 title and abstract into a structured summary card.
@@ -44,18 +40,9 @@ def summarize_paper(paper: dict) -> dict:
     """
     user_message = f"Title: {paper['title']}\n\nAbstract: {paper['abstract']}"
 
-    response = _client.messages.create(
-        model=MODEL,
-        max_tokens=600,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_message}],
-    )
+    raw_text = complete(SYSTEM_PROMPT, user_message, max_tokens=600)
 
-    raw_text = "".join(
-        block.text for block in response.content if block.type == "text"
-    ).strip()
-
-    # Claude sometimes wraps JSON in ```json fences despite instructions —
+    # Models sometimes wrap JSON in ```json fences despite instructions —
     # strip those defensively rather than trusting the prompt alone.
     if raw_text.startswith("```"):
         raw_text = raw_text.strip("`")
@@ -85,5 +72,5 @@ def summarize_paper(paper: dict) -> dict:
 
 
 def summarize_papers(papers: list[dict]) -> list[dict]:
-    """Summarize a batch of papers, one Claude call per paper."""
+    """Summarize a batch of papers, one model call per paper."""
     return [summarize_paper(p) for p in papers]

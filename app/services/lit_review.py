@@ -4,18 +4,13 @@ paper summaries, the comparison analysis, and detected research gaps,
 and drafts a coherent literature review section with inline citations —
 the "client/student-ready deliverable" from the proposal.
 
-This deliberately doesn't call Claude with raw abstracts again — it
+This deliberately doesn't call the LLM with raw abstracts again — it
 reuses the already-verified structured output from earlier agents
 (summarizer, comparator, gap_detector), so the lit review is grounded in
 work that's already been checked, not a fresh ungrounded generation.
 """
 
-import os
-from anthropic import Anthropic
-
-_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-
-MODEL = "claude-sonnet-4-6"
+from app.services.llm import complete
 
 SYSTEM_PROMPT = """You are drafting a literature review section for a \
 research topic. You will be given:
@@ -63,13 +58,4 @@ def generate_lit_review(topic: str, paper_cards: list[dict], comparison: dict, g
         f"Gap summary: {gaps.get('summary', '')}"
     )
 
-    response = _client.messages.create(
-        model=MODEL,
-        max_tokens=1500,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_message}],
-    )
-
-    return "".join(
-        block.text for block in response.content if block.type == "text"
-    )
+    return complete(SYSTEM_PROMPT, user_message, max_tokens=1500)

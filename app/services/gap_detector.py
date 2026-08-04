@@ -5,13 +5,9 @@ unresolved problems — the kind of thing a literature review's "future
 work" section would call out.
 """
 
-import os
 import json
-from anthropic import Anthropic
 
-_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-
-MODEL = "claude-sonnet-4-6"
+from app.services.llm import complete
 
 SYSTEM_PROMPT = """You are a research analyst looking across multiple \
 papers' stated limitations to find recurring gaps in the field.
@@ -52,16 +48,7 @@ def detect_research_gaps(paper_cards: list[dict]) -> dict:
         for c in paper_cards
     )
 
-    response = _client.messages.create(
-        model=MODEL,
-        max_tokens=800,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": cards_text}],
-    )
-
-    raw_text = "".join(
-        block.text for block in response.content if block.type == "text"
-    ).strip()
+    raw_text = complete(SYSTEM_PROMPT, cards_text, max_tokens=800)
 
     if raw_text.startswith("```"):
         raw_text = raw_text.strip("`")

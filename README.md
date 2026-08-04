@@ -54,23 +54,24 @@ interface, each in its own terminal window.
 
 ### 1. Backend setup (FastAPI)
 
-Create a virtual environment and install the Python dependencies:
+Create a virtual environment and install the Python dependencies
+(Python 3.10+ required; on this machine `python3.12` works well):
 
 ```bash
-python -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Add your Anthropic API key:
+Add your Gemini API key:
 
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` and paste in a real key from console.anthropic.com.
+Open `.env` and paste in a real key from [Google AI Studio](https://aistudio.google.com/apikey).
 
-Run the backend server:
+Run the backend server (Python 3.10+ recommended):
 
 ```bash
 uvicorn app.main:app --reload
