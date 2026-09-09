@@ -20,6 +20,8 @@ import {
   comparePapers,
   exportDocx,
 } from '../api/researchService';
+import { getApiErrorMessage } from '../api/axiosClient';
+import { ensureLlmApiKey } from '../api/llmSettings';
 import type { WorkspacePaper } from '../pages/Dashboard';
 
 // ─────────────────────────────────────────────────────────────────
@@ -322,8 +324,8 @@ export function DatabaseSearchContent({ onAddToWorkspace, workspaceIds }: DBSear
       const papers = data?.papers || data?.results || [];
       setResults(papers);
       saveResult('scholarai_search_results', papers);
-    } catch (err: any) {
-      setError(err.message || 'Search failed. Please try again.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Search failed. Please try again.'));
       setResults([]);
       saveResult('scholarai_search_results', []);
     } finally {
@@ -502,14 +504,18 @@ export function SemanticSearchContent() {
 
   const handleSearch = useCallback(async () => {
     if (!query.trim()) return;
+    if (!ensureLlmApiKey('Semantic Search needs an LLM API key to answer questions.')) {
+      setError('Add an LLM API key to use Semantic Search.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
       const data = await askQuestion(query, 5);
       setResult(data);
       saveResult('scholarai_ask', data);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'An error occurred.'));
     } finally {
       setIsLoading(false);
     }
@@ -601,14 +607,18 @@ export function LiteratureReviewContent({ workspace }: { workspace: WorkspacePap
 
   const handleGenerate = useCallback(async () => {
     if (!topic.trim() || selected.length === 0) return;
+    if (!ensureLlmApiKey('Literature Review needs an LLM API key to generate text.')) {
+      setError('Add an LLM API key to generate a literature review.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
       const data = await generateLiteratureReview(topic, selected, true);
       setResult(data);
       saveResult('scholarai_litreview', data);
-    } catch (err: any) {
-      setError(err.message || 'Generation failed.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Generation failed.'));
     } finally {
       setIsLoading(false);
     }
@@ -692,14 +702,18 @@ export function ClaimVerificationContent({ workspace }: { workspace: WorkspacePa
 
   const handleVerify = useCallback(async () => {
     if (!claim.trim() || selected.length === 0) return;
+    if (!ensureLlmApiKey('Claim Verification needs an LLM API key.')) {
+      setError('Add an LLM API key to verify claims.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
       const data = await verifyClaim(claim, selected);
       setResult(data);
       saveResult('scholarai_claims', data);
-    } catch (err: any) {
-      setError(err.message || 'Verification failed.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Verification failed.'));
     } finally {
       setIsLoading(false);
     }
@@ -791,14 +805,18 @@ export function GapDetectionContent({ workspace }: { workspace: WorkspacePaper[]
 
   const handleDetect = useCallback(async () => {
     if (selected.length === 0) return;
+    if (!ensureLlmApiKey('Gap Detection needs an LLM API key.')) {
+      setError('Add an LLM API key to detect research gaps.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
       const data = await detectGaps(selected);
       setResult(data);
       saveResult('scholarai_gaps', data);
-    } catch (err: any) {
-      setError(err.message || 'Detection failed.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Detection failed.'));
     } finally {
       setIsLoading(false);
     }
@@ -859,14 +877,18 @@ export function SummarizationContent({ workspace }: { workspace: WorkspacePaper[
 
   const handleSummarize = useCallback(async () => {
     if (selected.length === 0) return;
+    if (!ensureLlmApiKey('Summarization needs an LLM API key.')) {
+      setError('Add an LLM API key to summarize papers.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
       const data = await summarizePapers(selected);
       setResult(data);
       saveResult('scholarai_summary', data);
-    } catch (err: any) {
-      setError(err.message || 'Summarization failed.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Summarization failed.'));
     } finally {
       setIsLoading(false);
     }
@@ -943,14 +965,18 @@ export function PaperComparisonContent({ workspace }: { workspace: WorkspacePape
 
   const handleCompare = useCallback(async () => {
     if (selected.length < 2) return;
+    if (!ensureLlmApiKey('Paper Comparison needs an LLM API key.')) {
+      setError('Add an LLM API key to compare papers.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
       const data = await comparePapers(selected);
       setResult(data);
       saveResult('scholarai_compare', data);
-    } catch (err: any) {
-      setError(err.message || 'Comparison failed.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Comparison failed.'));
     } finally {
       setIsLoading(false);
     }
@@ -1097,8 +1123,8 @@ export function DocxExportContent() {
       a.parentNode?.removeChild(a);
       window.URL.revokeObjectURL(url);
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'Download failed.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Download failed.'));
     } finally {
       setIsLoading(false);
     }
