@@ -1,4 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import ApiKeySettings from '../components/ApiKeySettings';
 
 export default function MainLayout() {
   const location = useLocation();
@@ -21,6 +22,7 @@ export default function MainLayout() {
             </Link>
 
             <div className="flex items-center gap-2">
+              <ApiKeySettings />
               {[
                 { name: 'Home', path: '/' },
                 { name: 'Research Workspace', path: '/dashboard' },
