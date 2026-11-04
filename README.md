@@ -29,7 +29,7 @@ app/
 │   └── papers.py                All API endpoints (see below)
 ├── services/
 │   ├── arxiv_client.py          Searches arXiv, parses paper metadata
-│   ├── vector_store.py          Embeds abstracts, stores/retrieves via Chroma
+│   ├── vector_store.py          TF-IDF paper index (stdlib, no ML runtime)
 │   ├── answer_generator.py      Citation-backed Q&A
 │   ├── summarizer.py            Structured paper cards
 │   ├── comparator.py            Comparison matrix + narrative
@@ -116,15 +116,29 @@ own questions by editing `app/evaluation/eval_dataset.sample.json`.
 
 ## Design notes
 
-- **Local embeddings** — embeddings run locally via `sentence-transformers` (`all-MiniLM-L6-v2`) — no external embedding API needed
-- **Vector database** — the vector store is Chroma in local persistent mode (`chroma_data/`) — optimized for solo dev/demo use
+- **Lightweight retrieval** — paper indexing uses a stdlib TF-IDF store (`chroma_data/papers.json`) so Railway stays lean without torch / sentence-transformers / Chroma (retrieval quality is good enough for demos; swap back to embeddings later if needed)
 - **Anti-hallucination** — claim checking re-verifies claims independently rather than trusting that a citation next to a claim means it's actually supported
 - **Grounded generation** — lit review generation reuses already-summarized/compared/gap-checked structured data rather than re-deriving everything from raw abstracts, ensuring the final review is grounded in output that's already been verified
 - **State persistence** — the frontend uses `localStorage` to keep active tabs, workspace selections, and generated results intact across browser reloads
+
+## Deploying cheaply on Railway (portfolio)
+
+Configured for **minimum credits**:
+
+- One Docker service serves **API + React UI** (no second Railway service)
+- No torch / Chroma — stdlib TF-IDF index
+- `sleepApplication = true` — scales to **$0 compute while asleep**
+- Caps: **0.5 vCPU / 256 MB RAM**, 1 replica, no deploy overlap
+
+Dashboard checklist (do once):
+
+1. **Delete every other Railway resource** in the project (extra web services, Redis, Postgres, volumes). This app needs only the one web service and **no volume**.
+2. **Workspace → Usage → Hard Limit** (e.g. $5) so spend cannot runaway.
+3. **No uptime monitors / cron pings** on the public URL — replies reset the sleep timer and burn credits.
+4. First visit after sleep can be slow or briefly 502 — expected with serverless.
 
 ## Known gaps / next steps
 
 - Semantic Scholar and PubMedQA aren't wired in as retrieval sources yet — only arXiv. Both can be added as siblings to `arxiv_client.py` (using the same paper shape).
 - No ranking by recency/citation count — papers are currently returned in arXiv's relevance order.
-- No deployment config — currently scoped for local development only.
 - `.docx` export exists; PDF export was scoped but not yet built.

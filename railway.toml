@@ -3,7 +3,27 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-healthcheckPath = "/"
-healthcheckTimeout = 300
+# Absolute minimum footprint for a portfolio demo
+numReplicas = 1
+# Scale to zero after ~10 min with no outbound traffic (biggest credit saver)
+sleepApplication = true
+# Health only at deploy time — use a cheap path that does not touch LLM/IO
+healthcheckPath = "/health"
+healthcheckTimeout = 45
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 5
+# Avoid burn from crash-loop restarts
+restartPolicyMaxRetries = 1
+# Never double-bill old + new containers during a deploy
+overlapSeconds = 0
+drainingSeconds = 0
+
+# Hard caps so a spike cannot drain credits (billed usage is still actual RAM/CPU)
+[deploy.limitOverride.containers]
+cpu = 0.5
+memoryBytes = 268435456
+
+# Dashboard (do these once — not expressible here):
+# 1. Workspace → Usage → Hard Limit (e.g. $5) so spend cannot runaway
+# 2. Delete any extra Railway services (second frontend, Redis, Postgres, volumes)
+#    this app needs only ONE web service and no volume
+# 3. Turn off any uptime robot / cron that pings the public URL (keeps it awake)
